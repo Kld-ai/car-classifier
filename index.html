@@ -1,0 +1,109 @@
+
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>🚗 تصنيف نوع السيارة من الصورة</title>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      direction: rtl;
+      text-align: center;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    h1 {
+      color: #333;
+    }
+    input[type="file"] {
+      margin-top: 20px;
+    }
+    #preview {
+      margin-top: 20px;
+      max-width: 300px;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+    }
+    #confirmButton {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 18px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #confirmButton:disabled {
+      background-color: grey;
+      cursor: not-allowed;
+    }
+    #result {
+      margin-top: 30px;
+      font-size: 24px;
+      color: #222;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>🚗 تصنيف نوع السيارة من الصورة</h1>
+  <input type="file" id="imageUpload" accept="image/*" />
+  <br>
+  <img id="preview" src="" alt="صورة المعاينة" style="display:none;" />
+  <br>
+  <button id="confirmButton" disabled>تأكيد</button>
+  <div id="result"></div>
+
+  <script type="text/javascript">
+    window.addEventListener('DOMContentLoaded', (event) => {
+      let model, maxPredictions;
+
+      async function init() {
+        const modelURL = "model.json";
+        const metadataURL = "metadata.json";
+
+        try {
+          model = await tmImage.load(modelURL, metadataURL);
+          console.log("✅ النموذج جاهز!");
+          maxPredictions = model.getTotalClasses();
+        } catch (error) {
+          console.error("❌ خطأ في تحميل النموذج:", error);
+        }
+      }
+
+      const imageUpload = document.getElementById("imageUpload");
+      const preview = document.getElementById("preview");
+      const confirmButton = document.getElementById("confirmButton");
+      let imgLoaded = false;
+
+      imageUpload.addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        preview.src = URL.createObjectURL(file);
+        preview.style.display = "block";
+        confirmButton.disabled = false;
+        imgLoaded = true;
+      });
+
+      confirmButton.addEventListener("click", async () => {
+        if (!imgLoaded) return;
+
+        try {
+          const prediction = await model.predict(preview, false);
+          prediction.sort((a, b) => b.probability - a.probability);
+          const bestMatch = prediction[0];
+          document.getElementById('result').innerHTML = 
+            `🚘 التصنيف المتوقع: <span style="color:blue;">${bestMatch.className}</span> <br> 🔥 الثقة: ${(bestMatch.probability * 100).toFixed(2)}%`;
+        } catch (error) {
+          console.error("❌ خطأ أثناء التنبؤ:", error);
+        }
+      });
+
+      init();
+    });
+  </script>
+</body>
+</html>
