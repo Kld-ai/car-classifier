@@ -106,7 +106,8 @@
         const file = event.target.files[0];
         if (!file) return;
 
-        preview.src = URL.createObjectURL(file);
+       preview.src = (window.URL || window.webkitURL).createObjectURL(file);
+
         preview.style.display = "block";
         confirmButton.disabled = false;
         imgLoaded = true;
