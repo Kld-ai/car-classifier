@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>🚗 مصنف السيارات باستخدام Teachable Machine</title>
   <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- مكتبة الرسم البياني -->
   <style>
     body {
       font-family: 'Arial', sans-serif;
@@ -51,6 +52,10 @@
       font-size: 20px;
       font-weight: bold;
     }
+    #chart-container {
+      width: 400px;
+      margin: 20px auto;
+    }
     footer {
       margin-top: 30px;
       font-size: 12px;
@@ -67,11 +72,15 @@
   <br>
   <button id="confirmButton" disabled>تأكيد</button>
   <div id="label-container"></div>
+  <div id="chart-container">
+    <canvas id="resultChart"></canvas>
+  </div>
   <footer>© تصميم وتطوير: فريقك الجميل</footer>
 
   <script type="text/javascript">
     window.addEventListener('DOMContentLoaded', (event) => {
       let model, maxPredictions;
+      let chart;
 
       async function init() {
         const modelURL = "model.json";
@@ -90,6 +99,7 @@
       const preview = document.getElementById("preview");
       const confirmButton = document.getElementById("confirmButton");
       const labelContainer = document.getElementById("label-container");
+      const chartCanvas = document.getElementById('resultChart');
       let imgLoaded = false;
 
       imageUpload.addEventListener("change", (event) => {
@@ -110,12 +120,44 @@
           prediction.sort((a, b) => b.probability - a.probability);
           
           labelContainer.innerHTML = "";
+          const labels = [];
+          const data = [];
+
           prediction.forEach(pred => {
             const button = document.createElement('div');
             button.className = 'result-button';
             button.innerText = `${pred.className}: ${(pred.probability * 100).toFixed(2)}%`;
             labelContainer.appendChild(button);
+
+            labels.push(pred.className);
+            data.push((pred.probability * 100).toFixed(2));
           });
+
+          // رسم الرسم البياني
+          if (chart) {
+            chart.destroy();
+          }
+          chart = new Chart(chartCanvas, {
+            type: 'pie',
+            data: {
+              labels: labels,
+              datasets: [{
+                data: data,
+                backgroundColor: [
+                  '#4caf50', '#81c784', '#a5d6a7', '#c8e6c9', '#e8f5e9'
+                ],
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: {
+                  position: 'bottom'
+                }
+              }
+            }
+          });
+
         } catch (error) {
           console.error("❌ خطأ أثناء التنبؤ:", error);
         }
