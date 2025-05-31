@@ -2,85 +2,39 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
-  <title>🚗 مصنف السيارات باستخدام Teachable Machine</title>
-  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- مكتبة الرسم البياني -->
+  <title>🚗 مصنف السيارات - SUV و SEDAN</title>
+
+  <!-- مكتبة Teachable Machine محلي -->
+  <script src="teachablemachine-image.min.js"></script>
+
+  <!-- مكتبة Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
-    body {
-      font-family: 'Arial', sans-serif;
-      background: linear-gradient(to right, #e0f7fa, #fff);
-      direction: rtl;
-      text-align: center;
-      padding: 20px;
-    }
-    h1 {
-      color: #2e7d32;
-    }
-    input[type="file"] {
-      margin-top: 20px;
-    }
-    #preview {
-      margin-top: 20px;
-      max-width: 300px;
-      border: 3px dashed #2e7d32;
-      border-radius: 10px;
-      padding: 10px;
-    }
-    #confirmButton {
-      margin-top: 20px;
-      padding: 10px 20px;
-      font-size: 18px;
-      background-color: #2e7d32;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    #confirmButton:disabled {
-      background-color: grey;
-      cursor: not-allowed;
-    }
-    .result-button {
-      display: block;
-      width: 250px;
-      margin: 10px auto;
-      padding: 10px;
-      background-color: #c8e6c9;
-      color: #2e7d32;
-      border: 2px solid #2e7d32;
-      border-radius: 20px;
-      font-size: 20px;
-      font-weight: bold;
-    }
-    #chart-container {
-      width: 400px;
-      margin: 20px auto;
-    }
-    footer {
-      margin-top: 30px;
-      font-size: 12px;
-      color: #777;
-    }
+    body { font-family: 'Arial'; background: #f0f8ff; text-align: center; }
+    #preview { margin-top: 20px; max-width: 300px; }
+    .result-button { margin: 10px auto; padding: 10px; background: #b2dfdb; border-radius: 20px; width: 300px; }
+    #chart-container { width: 400px; margin: 30px auto; }
   </style>
 </head>
 <body>
-  <h1>🚗 مصنف السيارات باستخدام Teachable Machine</h1>
-  <p>قم برفع صورة السيارة لتصنيفها</p>
+  <h1>🚗 مصنف السيارات - SUV و SEDAN</h1>
   <input type="file" id="imageUpload" accept="image/*" />
   <br>
-  <img id="preview" src="" alt="صورة المعاينة" style="display:none;" />
+  <img id="preview" src="" style="display:none;" />
   <br>
-  <button id="confirmButton" disabled>تأكيد</button>
   <div id="label-container"></div>
-  <div id="chart-container">
-    <canvas id="resultChart"></canvas>
-  </div>
-  <footer>© تصميم وتطوير: فريقك الجميل</footer>
+  <div id="chart-container"><canvas id="resultChart"></canvas></div>
 
   <script type="text/javascript">
     window.addEventListener('DOMContentLoaded', (event) => {
       let model, maxPredictions;
       let chart;
+
+      const imageUpload = document.getElementById("imageUpload");
+      const preview = document.getElementById("preview");
+      const labelContainer = document.getElementById("label-container");
+      const chartCanvas = document.getElementById('resultChart');
 
       async function init() {
         const modelURL = "model.json";
@@ -91,81 +45,37 @@
           console.log("✅ النموذج جاهز!");
           maxPredictions = model.getTotalClasses();
         } catch (error) {
-          console.error("❌ خطأ في تحميل النموذج:", error);
+          console.error("❌ فشل تحميل النموذج:", error);
         }
       }
 
-      const imageUpload = document.getElementById("imageUpload");
-      const preview = document.getElementById("preview");
-      const confirmButton = document.getElementById("confirmButton");
-      const labelContainer = document.getElementById("label-container");
-      const chartCanvas = document.getElementById('resultChart');
-      let imgLoaded = false;
-
-      imageUpload.addEventListener("change", (event) => {
+      imageUpload.addEventListener("change", async (event) => {
         const file = event.target.files[0];
         if (!file) return;
 
-       preview.src = (window.URL || window.webkitURL).createObjectURL(file);
-
+        preview.src = window.URL.createObjectURL(file);
         preview.style.display = "block";
-        confirmButton.disabled = false;
-        imgLoaded = true;
-      });
 
-      confirmButton.addEventListener("click", async () => {
-        if (!imgLoaded) return;
+        // ✅ مباشرة يصير التصنيف هنا
+        const prediction = await model.predict(preview, false);
+        prediction.sort((a, b) => b.probability - a.probability);
 
-        try {
-          const prediction = await model.predict(preview, false);
-          prediction.sort((a, b) => b.probability - a.probability);
-          
-          labelContainer.innerHTML = "";
-          const labels = [];
-          const data = [];
+        labelContainer.innerHTML = "";
+        const labels = [];
+        const data = [];
 
-          prediction.forEach(pred => {
-            const button = document.createElement('div');
-            button.className = 'result-button';
-            button.innerText = `${pred.className}: ${(pred.probability * 100).toFixed(2)}%`;
-            labelContainer.appendChild(button);
+        prediction.forEach(pred => {
+          const button = document.createElement('div');
+          button.className = 'result-button';
+          button.innerText = `${pred.className}: ${(pred.probability * 100).toFixed(2)}%`;
+          labelContainer.appendChild(button);
 
-            labels.push(pred.className);
-            data.push((pred.probability * 100).toFixed(2));
-          });
+          labels.push(pred.className);
+          data.push((pred.probability * 100).toFixed(2));
+        });
 
-          // رسم الرسم البياني
-          if (chart) {
-            chart.destroy();
-          }
-          chart = new Chart(chartCanvas, {
-            type: 'pie',
-            data: {
-              labels: labels,
-              datasets: [{
-                data: data,
-                backgroundColor: [
-                  '#4caf50', '#81c784', '#a5d6a7', '#c8e6c9', '#e8f5e9'
-                ],
-              }]
-            },
-            options: {
-              responsive: true,
-              plugins: {
-                legend: {
-                  position: 'bottom'
-                }
-              }
-            }
-          });
-
-        } catch (error) {
-          console.error("❌ خطأ أثناء التنبؤ:", error);
-        }
-      });
-
-      init();
-    });
-  </script>
-</body>
-</html>
+        if (chart) chart.destroy();
+        chart = new Chart(chartCanvas, {
+          type: 'pie',
+          data: { labels: labels, datasets: [{ data: data, backgroundColor: ['#26a69a', '#80cbc4'] }] },
+          options: { responsi
